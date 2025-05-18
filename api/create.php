@@ -1,45 +1,35 @@
 <?php
-// Check Request Method
-if ($_SERVER['REQUEST_METHOD'] != 'POST') {
-    header('Allow: POST');
-    http_response_code(405);
-    echo json_encode('Method Not Allowed');
-    return;
-}
-// Headers
-header('Access-Control-Allow-Origin: *');
-header('Content-Type: application/json');
-header('Access-Control-Allow-Methods: POST');
 
-include_once '../db/Database.php';
-include_once '../models/Todo.php';
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
 
-// Instantiate a Database object & connect
-$database = new Database();
-$dbConnection = $database->connect();
+require_once __DIR__ . '/../db/Database.php';
+require_once __DIR__ . '/../models/Bookmark.php';
 
-// Instantiate Todo object
-$todo = new Todo($dbConnection);
+$data = json_decode(file_get_contents("php://input"));
 
-// Get the HTTP POST request JSON body
-$data = json_decode(file_get_contents("php://input"), true);
-if(!$data || !isset($data['task'])){
-    http_response_code(422);
-    echo json_encode(
-        array('message' => 'Error: Missing required parameter task in the JSON body.')
-    );
-    return;
+if (!isset($data->title) || !isset($data->url)) {
+    http_response_code(400);
+    echo json_encode(["message" => "Missing title or URL"]);
+    exit;
 }
 
-$todo->setTask($data['task']);
+$title = htmlspecialchars(strip_tags($data->title));
+$url = filter_var($data->url, FILTER_VALIDATE_URL);
 
-// Create ToDo
-if ($todo->create()) {
-    echo json_encode(
-        array('message' => 'A todo item was created')
-    );
+if (!$url) {
+    http_response_code(400);
+    echo json_encode(["message" => "Invalid URL format"]);
+    exit;
+}
+
+$bookmark = new Bookmark();
+$success = $bookmark->create($title, $url);
+
+if ($success) {
+    http_response_code(201);
+    echo json_encode(["message" => "Bookmark created"]);
 } else {
-    echo json_encode(
-        array('message' => 'Error: a todo item was not created')
-    );
+    http_response_code(500);
+    echo json_encode(["message" => "Failed to save bookmark"]);
 }

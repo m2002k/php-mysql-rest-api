@@ -1,47 +1,37 @@
 <?php
-// Check Request Method
-if ($_SERVER['REQUEST_METHOD'] != 'PUT') {
-    header('Allow: PUT');
-    http_response_code(405);
-    echo json_encode('Method Not Allowed');
-    return;
-}
 
-// Response Headers
-header('Access-Control-Allow-Origin: *');
-header('Content-Type: application/json');
-header('Access-Control-Allow-Methods: PUT');
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
 
-include_once '../db/Database.php';
-include_once '../models/Todo.php';
+require_once __DIR__ . '/../db/Database.php';
+require_once __DIR__ . '/../models/Bookmark.php';
 
-// Instantiate a Database object & connect
-$database = new Database();
-$dbConnection = $database->connect();
-
-// Instantiate Todo object
-$todo = new Todo($dbConnection);
-
-// Get the HTTP PUT request JSON body
 $data = json_decode(file_get_contents("php://input"));
-if (!$data || !$data->id || !$data->done) {
-    http_response_code(422);
-    echo json_encode(
-        array('message' => 'Error: Missing required parameters id and done in the JSON body.')
-    );
-    return;
+
+if (!isset($data->id) || !isset($data->title) || !isset($data->url)) {
+    http_response_code(400);
+    echo json_encode(["message" => "Missing id, title, or url"]);
+    exit;
 }
 
-$todo->setId($data->id);
-$todo->setDone($data->done);
+$id = (int) $data->id;
+$title = htmlspecialchars(strip_tags($data->title));
+$url = filter_var($data->url, FILTER_VALIDATE_URL);
 
-// Update the ToDo item
-if ($todo->update()) {
-    echo json_encode(
-        array('message' => 'A todo item was updated.')
-    );
+if (!$url || $id <= 0) {
+    http_response_code(400);
+    echo json_encode(["message" => "Invalid input"]);
+    exit;
+}
+
+$bookmark = new Bookmark();
+$success = $bookmark->update($id, $title, $url);
+
+if ($success) {
+    http_response_code(200);
+    echo json_encode(["message" => "Bookmark updated"]);
 } else {
-    echo json_encode(
-        array('message' => 'Error: a todo item was not updated.')
-    );
+    http_response_code(500);
+    echo json_encode(["message" => "Failed to update bookmark"]);
 }
+

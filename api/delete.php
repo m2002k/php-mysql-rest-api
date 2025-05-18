@@ -1,46 +1,34 @@
 <?php
-// Check Request Method
-if ($_SERVER['REQUEST_METHOD'] != 'DELETE') {
-    header('Allow: DELETE');
-    http_response_code(405);
-    echo json_encode('Method Not Allowed');
-    return;
-}
 
-// Headers
-header('Access-Control-Allow-Origin: *');
-header('Content-Type: application/json');
-header('Access-Control-Allow-Methods: DELETE');
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
 
-include_once '../db/Database.php';
-include_once '../models/Todo.php';
+require_once __DIR__ . '/../db/Database.php';
+require_once __DIR__ . '/../models/Bookmark.php';
 
-// Instantiate a Database object & connect
-$database = new Database();
-$dbConnection = $database->connect();
-
-// Instantiate Todo object
-$todo = new Todo($dbConnection);
-
-// Get the HTTP DELETE request JSON body
 $data = json_decode(file_get_contents("php://input"));
-if(!$data || !$data->id){
-    http_response_code(422);
-    echo json_encode(
-        array('message' => 'Error: Missing required parameter id in the JSON body.')
-    );
-    return;
+
+if (!isset($data->id)) {
+    http_response_code(400);
+    echo json_encode(["message" => "Bookmark ID is required"]);
+    exit;
 }
 
-$todo->setId($data->id);
+$id = (int) $data->id;
 
-// Delete the ToDo item
-if ($todo->delete()) {
-    echo json_encode(
-        array('message' => 'A todo item was deleted.')
-    );
+if ($id <= 0) {
+    http_response_code(400);
+    echo json_encode(["message" => "Invalid ID"]);
+    exit;
+}
+
+$bookmark = new Bookmark();
+$success = $bookmark->delete($id);
+
+if ($success) {
+    http_response_code(200);
+    echo json_encode(["message" => "Bookmark deleted"]);
 } else {
-    echo json_encode(
-        array('message' => 'Error: a todo item was not deleted.')
-    );
+    http_response_code(500);
+    echo json_encode(["message" => "Failed to delete bookmark"]);
 }

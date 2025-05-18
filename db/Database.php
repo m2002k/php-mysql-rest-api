@@ -11,11 +11,11 @@ class Database {
     public function __construct()
     {
         // read database credentials from the environment
-        $this->dbHost = getenv('DB_HOST');
-        $this->dbPort = getenv('DB_PORT');
-        $this->dbName = getenv('DB_DATABASE');
-        $this->dbUser = getenv('DB_USERNAME');
-        $this->dbPassword = getenv('DB_PASSWORD');
+        $this->dbHost = 'localhost';
+        $this->dbPort = '3306';
+        $this->dbName = 'bookmarks_db';
+        $this->dbUser = 'root';
+        $this->dbPassword = 'Secret';
         if (!$this->dbHost || !$this->dbPort || !$this->dbName || !$this->dbUser || !$this->dbPassword){
             die("Please set database credentials as environment variables");
         }

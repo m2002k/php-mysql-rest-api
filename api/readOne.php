@@ -1,50 +1,34 @@
 <?php
-// Check Request Method
-if ($_SERVER['REQUEST_METHOD'] != 'GET') {
-    header('Allow: GET');
-    http_response_code(405);
-    echo json_encode('Method Not Allowed');
-    return;
+
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
+
+require_once __DIR__ . '/../db/Database.php';
+require_once __DIR__ . '/../models/Bookmark.php';
+
+$data = json_decode(file_get_contents("php://input"));
+
+if (!isset($data->id)) {
+    http_response_code(400);
+    echo json_encode(["message" => "Bookmark ID is required"]);
+    exit;
 }
 
-// Response Headers
-header('Access-Control-Allow-Origin: *');
-header('Content-Type: application/json');
-header('Access-Control-Allow-Methods: GET');
+$id = (int) $data->id;
 
-include_once '../db/Database.php';
-include_once '../models/Todo.php';
-
-// Instantiate a Database object & connect
-$database = new Database();
-$dbConnection = $database->connect();
-
-// Instantiate Todo object
-$todo = new Todo($dbConnection);
-
-// Get the HTTP GET request query parameter (e.g., ?id=123)
-if (!isset($_GET['id'])) {
-    http_response_code(422);
-    echo json_encode(
-        array('message' => 'Error: Missing required query parameter id.')
-    );
-    return;
+if ($id <= 0) {
+    http_response_code(400);
+    echo json_encode(["message" => "Invalid ID"]);
+    exit;
 }
 
-$todo->setId($_GET['id']);
+$bookmark = new Bookmark();
+$result = $bookmark->get($id);
 
-// Read ToDo
-if ($todo->readOne()) {
-    $result =  array(
-        'id' => $todo->getId(),
-        'task' => $todo->getTask(),
-        'dateAdded' => $todo->getDateAdded(),
-        'done' => $todo->getDone()
-    );
+if ($result) {
+    http_response_code(200);
     echo json_encode($result);
 } else {
     http_response_code(404);
-    echo json_encode(
-        array('message' => 'Error: No todo item was found')
-    );
+    echo json_encode(["message" => "Bookmark not found"]);
 }
